@@ -11,7 +11,7 @@ import tensorflow as tf
 
 
 def get_predict_data():
-    file_set = ["predict/6.png", "predict/8.png", "predict/9.png"]
+    file_set = ["predict/6.png", "predict/8.png", "predict/9.jpg"]
     result = []
     for file_name in file_set:
         img = Image.open(file_name)
