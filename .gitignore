@@ -1,3 +1,6 @@
-*/MNIST-data/
-.git
-*/.idea/
+.idea/car-dnn-classifier.iml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+.idea/workspace.xml
+joeytsai/mnist/MNIST-data/
