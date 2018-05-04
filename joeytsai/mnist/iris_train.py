@@ -51,7 +51,8 @@ for key in train_feature.keys():
 classifier = tf.estimator.DNNClassifier(
     feature_columns=my_feature_columns,
     hidden_units=[10, 10],
-    n_classes=3)
+    n_classes=3,
+    model_dir="./iris")
 #n_classes 参数指定了神经网络可以预测的潜在值的数量。
 #由于鸢尾花问题将鸢尾花品种分为 3 类，因此我们将 n_classes 设置为 3。
 
