@@ -100,7 +100,7 @@ def main(argv):
         shuffle=True)
     mnist_classifier.train(  # 训练
         input_fn=train_input_fn,
-        steps=20000,
+        steps=20,
         hooks=[logging_hook])
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(  # 评估师如函数
         x={"x": eval_data},

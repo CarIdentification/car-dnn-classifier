@@ -7,6 +7,33 @@ import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.INFO)  # 输出训练中的损失信息
 
 
+def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=False):
+    def data_generate():
+        dataset = tf.data.TFRecordDataset(file_paths)
+        dataset = dataset.map(parser)
+        dataset = dataset.shuffle(buffer_size=10000)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
+        dataset = dataset.batch(32)  # 单次读取的batch大小
+        dataset = dataset.repeat(num_epochs)  # 数据集的重复使用次数，为空的话则无线循环
+        iterator = dataset.make_one_shot_iterator()
+
+        features, labels = iterator.get_next()
+        return {"img_data": features}, labels
+
+    def parser(record):
+        keys_map = {
+            "label": tf.FixedLenFeature((), tf.int64, tf.zeros([], dtype=tf.int64)),
+            "image_byte": tf.FixedLenFeature((), tf.string, default_value="")
+        }
+        parsed_data = tf.parse_single_example(record, keys_map)
+        img = tf.image.decode_jpeg(parsed_data["image_byte"])
+        img = tf.cast(img, tf.float32)
+        label = parsed_data["label"]
+
+        return img, label
+
+    return data_generate
+
+
 def generate_conv(inputs, filters):
     return tf.layers.conv2d(
         inputs=inputs,  # 使用的输入层
@@ -23,7 +50,7 @@ def generate_max_pooling(inputs):
 
 def vgg_model_fn(features, labels, mode):
     # Input Layer
-    input_layer = tf.reshape(features["x"], [-1, 224, 224, 3, ])
+    input_layer = tf.reshape(features["img_data"], [-1, 224, 224, 3])
 
     # 加权层1
     conv1 = generate_conv(input_layer, 64)  # 224,224,64
@@ -106,46 +133,20 @@ def vgg_model_fn(features, labels, mode):
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
-def get_train_data():
-
-    return {}
-
-
-def get_train_labels():
-    return {}
-
-
-def get_eval_data():
-    return {}
-
-
-def get_eval_labels():
-    return {}
-
-
 def main(argv):
     vgg_car_classifier = tf.estimator.Estimator(
-        model_fn=vgg_model_fn, model_dir="/tmp/mnist_convnet_model")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
+        model_fn=vgg_model_fn, model_dir="/tmp/car_face")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)  # 每训练50步输出该次结果probabilities的softmax_tensor层
     # Train the model
-    train_input_fn = tf.estimator.inputs.numpy_input_fn(  # 定义训练输入函数
-        x={"x": get_train_data()},
-        y=get_train_labels(),
-        batch_size=100,
-        num_epochs=None,
-        shuffle=True)
+
     vgg_car_classifier.train(  # 训练
-        input_fn=train_input_fn,
-        steps=20000,
+        input_fn=tfrecords_input_fn("car.tfrecords", 1, None),
+        steps=100,
         hooks=[logging_hook])
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(  # 评估师如函数
-        x={"x": get_eval_data()},
-        y=get_eval_labels(),
-        num_epochs=1,
-        shuffle=False)
+    eval_input_fn = tfrecords_input_fn("car.tfrecords")
     eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
     print(eval_results)
 
