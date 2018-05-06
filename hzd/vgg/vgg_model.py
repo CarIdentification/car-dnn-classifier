@@ -11,8 +11,8 @@ def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=Fals
     def data_generate():
         dataset = tf.data.TFRecordDataset(file_paths)
         dataset = dataset.map(parser)
-        dataset = dataset.shuffle(buffer_size=10000)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
-        dataset = dataset.batch(32)  # 单次读取的batch大小
+        # dataset = dataset.shuffle(buffer_size=10000)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
+        dataset = dataset.batch(batch_size)  # 单次读取的batch大小
         dataset = dataset.repeat(num_epochs)  # 数据集的重复使用次数，为空的话则无线循环
         iterator = dataset.make_one_shot_iterator()
 
@@ -22,11 +22,11 @@ def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=Fals
     def parser(record):
         keys_map = {
             "label": tf.FixedLenFeature((), tf.int64, tf.zeros([], dtype=tf.int64)),
-            "image_byte": tf.FixedLenFeature((), tf.string, default_value="")
+            "img_byte": tf.FixedLenFeature((), tf.string, default_value="")
         }
         parsed_data = tf.parse_single_example(record, keys_map)
-        img = tf.image.decode_jpeg(parsed_data["image_byte"])
-        img = tf.cast(img, tf.float32)
+        img = tf.decode_raw(parsed_data["img_byte"], out_type=tf.uint8)
+
         label = parsed_data["label"]
 
         return img, label
@@ -95,11 +95,11 @@ def vgg_model_fn(features, labels, mode):
         inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)  # 插入一个dropout层 丢弃50%节点
 
     dense2 = tf.layers.dense(inputs=dropout1, units=4096, activation=tf.nn.relu)  # 进行4096单元的全连接，激活函数为RELU
-    dropout1 = tf.layers.dropout(
+    dropout2 = tf.layers.dropout(
         inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)  # 插入一个dropout层 丢弃50%节点
 
     # Logits Layer
-    logits = tf.layers.dense(inputs=dropout1, units=4)  # 输出层  输出类型为四个方向   1:前方 2:侧面 3:前面+侧面 4:后面
+    logits = tf.layers.dense(inputs=dropout2, units=4)  # 输出层  输出类型为四个方向   1:前方 2:侧面 3:前面+侧面 4:后面
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
@@ -143,10 +143,10 @@ def main(argv):
     # Train the model
 
     vgg_car_classifier.train(  # 训练
-        input_fn=tfrecords_input_fn("car.tfrecords", 1, None),
+        input_fn=tfrecords_input_fn("car.tfrecords", 3, None),
         steps=100,
         hooks=[logging_hook])
-    eval_input_fn = tfrecords_input_fn("car.tfrecords")
+    eval_input_fn = tfrecords_input_fn("car.tfrecords", 3, None)
     eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
     print(eval_results)
 
