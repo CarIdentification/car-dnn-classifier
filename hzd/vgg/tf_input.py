@@ -20,7 +20,7 @@ def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=Fals
         }
         parsed_data = tf.parse_single_example(record, keys_map)
         img = tf.decode_raw(parsed_data["img_byte"], out_type=tf.uint8)
-
+        img = tf.cast(img,tf.float32)
         label = parsed_data["label"]
 
         return img, label
