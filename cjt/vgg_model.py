@@ -8,32 +8,6 @@ import cjt.tfrecords_input_fn as tr_input_fn
 tf.logging.set_verbosity(tf.logging.INFO)  # 输出训练中的损失信息
 
 
-def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=False):
-    def data_generate():
-        dataset = tf.data.TFRecordDataset(file_paths)
-        dataset = dataset.map(parser)
-        dataset = dataset.shuffle(buffer_size=10000)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
-        dataset = dataset.batch(32)  # 单次读取的batch大小
-        dataset = dataset.repeat(num_epochs)  # 数据集的重复使用次数，为空的话则无线循环
-        iterator = dataset.make_one_shot_iterator()
-
-        features, labels = iterator.get_next()
-        return {"image_raw": features}, labels
-
-    def parser(record):
-        keys_map = {
-            "label": tf.FixedLenFeature((), tf.int64, tf.zeros([], dtype=tf.int64)),
-            "image_raw": tf.FixedLenFeature((), tf.string, default_value="")
-        }
-        parsed_data = tf.parse_single_example(record, keys_map)
-        img = tf.decode_raw(parsed_data["image_raw"],tf.float32)
-        img = tf.cast(img, tf.float32)
-        label = parsed_data["label"]
-
-        return img, label
-
-    return data_generate
-
 def generate_conv(inputs, filters):
     return tf.layers.conv2d(
         inputs=inputs,  # 使用的输入层
@@ -50,7 +24,7 @@ def generate_max_pooling(inputs):
 
 def vgg_model_fn(features, labels, mode):
     # Input Layer
-    input_layer = tf.reshape(features["img_raw"], [-1, 224, 224, 3 ])
+    input_layer = tf.reshape(features["img_raw"], [-1, 224, 224, 3])
 
     # 加权层1
     conv1 = generate_conv(input_layer, 64)  # 224,224,64
@@ -95,11 +69,11 @@ def vgg_model_fn(features, labels, mode):
         inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)  # 插入一个dropout层 丢弃50%节点
 
     dense2 = tf.layers.dense(inputs=dropout1, units=4096, activation=tf.nn.relu)  # 进行4096单元的全连接，激活函数为RELU
-    dropout1 = tf.layers.dropout(
+    dropout2 = tf.layers.dropout(
         inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)  # 插入一个dropout层 丢弃50%节点
 
     # Logits Layer
-    logits = tf.layers.dense(inputs=dropout1, units=4)  # 输出层  输出类型为四个方向   1:前方 2:侧面 3:前面+侧面 4:后面
+    logits = tf.layers.dense(inputs=dropout2, units=4)  # 输出层  输出类型为四个方向   1:前方 2:侧面 3:前面+侧面 4:后面
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
@@ -135,19 +109,18 @@ def vgg_model_fn(features, labels, mode):
 
 def main(argv):
     vgg_car_classifier = tf.estimator.Estimator(
-        model_fn=vgg_model_fn, model_dir="/tmp/mnist_convnet_model")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
+        model_fn=vgg_model_fn, model_dir="/tmp/car_identify")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=50)  # 每训练50步输出该次结果probabilities的softmax_tensor层
+        tensors=tensors_to_log, every_n_iter=1)  # 每训练1步输出该次结果probabilities的softmax_tensor层
     # Train the model
     train_input_fn = tr_input_fn.tfRecord_input_fn("train_test.tfrecords",1,None)
-    # vgg_car_classifier.train(  # 训练
-    #     input_fn=train_input_fn,
-    #     steps=20000,
-    #     hooks=[logging_hook])
-    eval_input_fn =  tr_input_fn.tfRecord_input_fn("train_test.tfrecords",1,None)# 评估师如函数
-
+    vgg_car_classifier.train(  # 训练
+        input_fn=train_input_fn,
+        steps=3,
+        hooks=[logging_hook])
+    eval_input_fn = tr_input_fn.tfRecord_input_fn("train_test.tfrecords",3,1)# 评估师如函数
     eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
     print(eval_results)
 

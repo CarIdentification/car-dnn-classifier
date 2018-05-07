@@ -12,6 +12,11 @@ sess = tf.Session()
 for index, name in enumerate(classes):
     class_path = filePath + name + '/' # 四个面的文件夹路径
     for img_name in os.listdir(class_path): #list出所有图片
+        if img_name.startswith('.'): # mac制作数据时候忽略掉隐藏文件
+            continue
+
+        print(img_name.startswith('.'))
+
         img_path = class_path + img_name # 每一个图片的路径
 
         img = Image.open(img_path) #打开文件流
