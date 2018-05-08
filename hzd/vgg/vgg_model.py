@@ -4,16 +4,17 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-tf.logging.set_verbosity(tf.logging.INFO)  # 输出训练中的损失信息
+tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
 def tfrecords_input_fn(file_paths, batch_size=100, num_epochs=None, shuffle=False):
     def data_generate():
         dataset = tf.data.TFRecordDataset(file_paths)
         dataset = dataset.map(parser)
-        # dataset = dataset.shuffle(buffer_size=10000)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
+        dataset = dataset.shuffle(buffer_size=456)  # 在训练的时候一般需要将输入数据进行顺序打乱提高训练的泛化性
         dataset = dataset.batch(batch_size)  # 单次读取的batch大小
         dataset = dataset.repeat(num_epochs)  # 数据集的重复使用次数，为空的话则无线循环
+
         iterator = dataset.make_one_shot_iterator()
 
         features, labels = iterator.get_next()
@@ -139,16 +140,16 @@ def main(argv):
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=50)  # 每训练50步输出该次结果probabilities的softmax_tensor层
+        tensors=tensors_to_log, every_n_iter=100)  # 每训练50步输出该次结果probabilities的softmax_tensor层
     # Train the model
 
     vgg_car_classifier.train(  # 训练
-        input_fn=tfrecords_input_fn("car.tfrecords", 3, None),
-        steps=100,
+        input_fn=tfrecords_input_fn("car.tfrecords", 16, None),
+        steps=20000,
         hooks=[logging_hook])
-    eval_input_fn = tfrecords_input_fn("car.tfrecords", 3, 1)
-    eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
-    print(eval_results)
+    # eval_input_fn = tfrecords_input_fn("car.tfrecords", 10, 1)
+    # eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
+    # print(eval_results)
 
 
 if __name__ == "__main__":
