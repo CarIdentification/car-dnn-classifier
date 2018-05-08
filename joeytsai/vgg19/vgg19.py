@@ -164,7 +164,7 @@ def vgg19_model(x, keepPro, classNum, skip):
 
     fc7 = fcLayer(dropout1, 4096, 4096, True, "fc7")
     dropout2 = dropout(fc7, keepPro)
-
+    #softmax
     fc8 = fcLayer(dropout2, 4096, classNum, True, "fc8")
     return fc8
 

@@ -47,8 +47,9 @@ if __name__ == '__main__':
            print(step)
            if coord.should_stop():
                break
-           _, train_acc, train_loss = sess.run([train_op, acc, cost])
+           _, train_acc, train_loss  = sess.run([train_op, acc, cost ])
            print("loss:{} accuracy:{}".format(train_loss, train_acc))
+           print(p)
    except tf.errors.OutOfRangeError:
        print("Done!!!")
    finally:
