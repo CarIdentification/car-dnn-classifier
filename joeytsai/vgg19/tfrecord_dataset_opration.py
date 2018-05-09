@@ -8,9 +8,10 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
+from joeytsai.vgg19.test_variables import test_variables
 
-file_path = "./carimg/classes/"
-output_path  = "./carimg/classes/tfrecords/"
+file_path = "./train_carimg/classes/"
+output_path  = "./train_carimg/classes/tfrecords/"
 # 转化为tfRecord
 def trans2tfRecord(file_path,name,output_path):
     class_list = {"1", "2", "3", "4"}
@@ -26,7 +27,7 @@ def trans2tfRecord(file_path,name,output_path):
             img = img.resize((224, 224))
             image_raw= img.tobytes()
             example = tf.train.Example(features=tf.train.Features(feature={
-                    'img_raw':_bytes_feature(image_raw),
+                    'img_byte':_bytes_feature(image_raw),
                      'label': _int64_feature(index)
                     }))
             writer.write(example.SerializeToString())
@@ -40,15 +41,21 @@ def read_and_decode(filename): # read iris_contact.tfrecords
     features = tf.parse_single_example(serialized_example,
                                        features={
                                            'label': tf.FixedLenFeature([], tf.int64),
-                                           'img_raw' : tf.FixedLenFeature([], tf.string),
+                                           'img_byte' : tf.FixedLenFeature([], tf.string),
                                        })#return image and label
 
-    img = tf.decode_raw(features['img_raw'], tf.uint8)
-    img = tf.reshape(img, [224, 224, 3])  #reshape image to 512*80*3
-    img = tf.cast(img, tf.float32) * (1. / 255) - 0.5 #throw img tensor
-    image = tf.image.per_image_standardization(img)
+    image = tf.decode_raw(features['img_byte'], tf.uint8)
+    image = tf.reshape(image, [224, 224, 3])  #reshape image to 512*80*3
+
+    #归一化 nomalize
+    image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
+    #标准化 standardization
+    image = tf.image.per_image_standardization(image)
+
     label = tf.cast(features['label'], tf.int32) #throw label tensor
-    return img, label
+
+    test_variables("label",label)
+    return image, label
 
 def tfrecord2pic(input_path,filename,output_path):
     filename_queue = tf.train.string_input_producer([input_path+filename])
@@ -57,18 +64,21 @@ def tfrecord2pic(input_path,filename,output_path):
     features = tf.parse_single_example(serialized_example,
                                        features={
                                            'label': tf.FixedLenFeature([], tf.int64),
-                                           'img_raw': tf.FixedLenFeature([], tf.string),
+                                           'img_byte': tf.FixedLenFeature([], tf.string),
                                        })
-    image = tf.decode_raw(features['img_raw'], tf.uint8)
+    image = tf.decode_raw(features['img_byte'], tf.uint8)
     image = tf.reshape(image, [224, 224, 3])
     label = tf.cast(features['label'], tf.int32)
     with tf.Session() as sess:
-        init_op = tf.initialize_all_variables()
+        init_op = tf.global_variables_initializer()
+
+
         sess.run(init_op)
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
         for i in range(30):
             example, l = sess.run([image, label])  # take out image and label
+
             img = Image.fromarray(example, 'RGB')
             if not os.path.exists(output_path) or os.path.isfile(output_path):
                 os.makedirs(output_path)
