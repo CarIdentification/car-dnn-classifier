@@ -1,82 +1,48 @@
-# coding: UTF-8
+
 import tensorflow as tf
 import numpy as np
-#https://blog.csdn.net/u014365862/article/details/77833481
-# https://blog.csdn.net/cxmscb/article/details/71023576
-# 卷积层计算 ： https://blog.csdn.net/zhangwei15hh/article/details/78417789
-# reshape操作 ： https://blog.csdn.net/lxg0807/article/details/53021859
-# conv2d参数详解 ： https://blog.csdn.net/lujiandong1/article/details/53728053
-# padding操作计算 ： https://blog.csdn.net/wkk15903468980/article/details/75024467
-# dropout : https://blog.csdn.net/williamyi96/article/details/77544536
-###########################################################################################
-# 1. conv3 - 64（卷积核的数量）：kernel size:3 stride:1 pad:1
-# 像素：（224-3+2*1）/1+1=224 224*224*64
-# 参数： （3*3*3）*64 =1728
-# 2. conv3 - 64：kernel size:3 stride:1 pad:1
-# 像素： （224-3+1*2）/1+1=224 224*224*64
-# 参数： （3*3*64）*64 =36864
-# 3. pool2 kernel size:2 stride:2 pad:0
-# 像素： （224-2）/2 = 112 112*112*64
-# 参数： 0
-# 4.conv3-128:kernel size:3 stride:1 pad:1
-# 像素： （112-3+2*1）/1+1 = 112 112*112*128
-# 参数： （3*3*64）*128 =73728
-# 5.conv3-128:kernel size:3 stride:1 pad:1
-# 像素： （112-3+2*1）/1+1 = 112 112*112*128
-# 参数： （3*3*128）*128 =147456
-# 6.pool2: kernel size:2 stride:2 pad:0
-# 像素： （112-2）/2+1=56 56*56*128
-# 参数：0
-# 7.conv3-256: kernel size:3 stride:1 pad:1
-# 像素： （56-3+2*1）/1+1=56 56*56*256
-# 参数：（3*3*128）*256=294912
-# 8.conv3-256: kernel size:3 stride:1 pad:1
-# 像素： （56-3+2*1）/1+1=56 56*56*256
-# 参数：（3*3*256）*256=589824
-# 9.conv3-256: kernel size:3 stride:1 pad:1
-# 像素： （56-3+2*1）/1+1=56 56*56*256
-# 参数：（3*3*256）*256=589824
-# 10.pool2: kernel size:2 stride:2 pad:0
-# 像素：（56 - 2）/2+1=28 28*28*256
-# 参数：0
-# 11. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（28-3+2*1）/1+1=28 28*28*512
-# 参数：（3*3*256）*512 = 1179648
-# 12. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（28-3+2*1）/1+1=28 28*28*512
-# 参数：（3*3*512）*512 = 2359296
-# 13. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（28-3+2*1）/1+1=28 28*28*512
-# 参数：（3*3*512）*512 = 2359296
-# 14.pool2: kernel size:2 stride:2 pad:0
-# 像素：（28-2）/2+1=14 14*14*512
-# 参数： 0
-# 15. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（14-3+2*1）/1+1=14 14*14*512
-# 参数：（3*3*512）*512 = 2359296
-# 16. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（14-3+2*1）/1+1=14 14*14*512
-# 参数：（3*3*512）*512 = 2359296
-# 17. conv3-512:kernel size:3 stride:1 pad:1
-# 像素：（14-3+2*1）/1+1=14 14*14*512
-# 参数：（3*3*512）*512 = 2359296
-# 18.pool2:kernel size:2 stride:2 pad:0
-# 像素：（14-2）/2+1=7 7*7*512
-# 参数：0
 
-# 19.FC: 4096 neurons
-# 像素：1*1*4096
-# 参数：7*7*512*4096 = 102760448
 
-# 20.FC: 4096 neurons
-# 像素：1*1*4096
-# 参数：4096*4096 = 16777216
-# 21.FC：1000 neurons
-# 像素：1*1*1000
-# 参数：4096*1000=4096000
-###########################################################################################
-# define different layer functions
-# we usually don't do convolution and pooling on batch and channel
+import tensorflow as tf
+def test_variables(variable_name,variable):
+    sess = tf.Session()
+    init_op = tf.global_variables_initializer()
+    sess.run(init_op)
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    l = sess.run(variable)
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
+    print(" ########################  begin  {}  #########################".format(variable_name) ,"\n",l, "\n","#########################   end  {}   #########################".format(variable_name))
+
+def read_and_decode(filename): # read iris_contact.tfrecords
+    filename_queue = tf.train.string_input_producer([filename])# create a queue
+
+    reader = tf.TFRecordReader()
+    _, serialized_example = reader.read(filename_queue)#return file_name and file
+    features = tf.parse_single_example(serialized_example,
+                                       features={
+                                           'label': tf.FixedLenFeature([], tf.int64),
+                                           'img_byte' : tf.FixedLenFeature([], tf.string),
+                                       })#return image and label
+
+    img = tf.decode_raw(features['img_byte'], tf.uint8)
+    img = tf.reshape(img, [224, 224, 3])  #reshape image to 512*80*3
+    img = tf.cast(img, tf.float32) * (1. / 255) - 0.5 #throw img tensor
+    image = tf.image.per_image_standardization(img)
+    label = tf.cast(features['label'], tf.int32) #throw label tensor
+    return img, label
+
+
+def _int64_feature(value):
+     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+def _bytes_feature(value):
+     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+
 def maxPoolLayer(x, kHeight, kWidth, strideX, strideY, name, padding = "SAME"):
     """max-pooling"""
     # tf.nn.max_pool参数解释 ： https://blog.csdn.net/mao_xiao_feng/article/details/53453926
@@ -168,3 +134,42 @@ def vgg19_model(x, keepPro, classNum, skip):
     fc8 = fcLayer(dropout2, 4096, classNum, True, "fc8")
     return fc8
 
+
+
+#http://www.cnblogs.com/wktwj/p/7227544.html
+if __name__ == '__main__':
+
+   (image , label) = read_and_decode("./car.tfrecords")
+   # (image , label) = read_and_decode("drive/cartensorflow/car/car.tfrecords")
+   #http://www.cnblogs.com/wktwj/p/7227544.html
+
+   image_batches, label_batches = tf.train.shuffle_batch([image, label], batch_size=50, capacity=100,min_after_dequeue=75)
+
+   p = vgg19_model(image_batches,0.5,4,"没有用的参数")
+   cost = loss(p, label_batches)
+   train_op = training(cost, 0.001)
+
+   acc = get_accuracy(p, label_batches)
+
+   sess = tf.Session()
+   init = tf.global_variables_initializer()
+   sess.run(init)
+
+   coord = tf.train.Coordinator()
+   threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+   try:
+       for step in np.arange(20000):
+           print(step)
+           if coord.should_stop():
+               break
+           a  = 1
+           _, train_acc, train_loss  = sess.run([train_op, acc, cost ])
+           print("loss:{} accuracy:{}".format(train_loss, train_acc))
+           test_variables("p", p)
+   except tf.errors.OutOfRangeError:
+       print("Done!!!")
+   finally:
+       coord.request_stop()
+   coord.join(threads)
+   sess.close()

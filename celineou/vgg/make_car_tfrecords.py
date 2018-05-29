@@ -6,7 +6,7 @@ import numpy as np
 
 cwd='/Users/celineou/Desktop/Study/毕业设计/car_data/'
 classes = {'1','2','3','4'}  #正面 斜侧面 侧面 正背面
-writer = tf.python_io.TFRecordWriter(cwd+"car_train.tfrecords")  #要生成的文件
+writer = tf.python_io.TFRecordWriter("car_train.tfrecords")  #要生成的文件
 
 for index,name in enumerate(classes):
     class_path = cwd + name + '/'
