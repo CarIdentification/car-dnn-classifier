@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
@@ -105,7 +106,7 @@ def vgg_model_fn(features, labels, mode):
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
-        "classes": tf.argmax(input=logits, axis=0),  # 返回类别id
+        "classes": tf.argmax(input=logits, axis=1),  # 返回类别id
         # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
         # `logging_hook`.
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor")  # 将输出对数转换成概率
@@ -122,7 +123,7 @@ def vgg_model_fn(features, labels, mode):
 
     if mode == tf.estimator.ModeKeys.TRAIN:  # 如果是训练模式
         # optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9)  # 创建一个学习率0.01
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0001)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
@@ -137,22 +138,37 @@ def vgg_model_fn(features, labels, mode):
 
 
 def main(argv):
+    # # Load training and eval data
+    mnist = tf.contrib.learn.datasets.load_dataset("mnist")  # 读入minst数据
+    train_data = mnist.train.images  # Returns np.array  取出训练集图片的numpy数组
+    train_labels = np.asarray(mnist.train.labels, dtype=np.int32)  # 取出训练集的标签集并转换为numpy数组
+    eval_data = mnist.test.images  # Returns np.array
+    eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
     vgg_car_classifier = tf.estimator.Estimator(
-        model_fn=vgg_model_fn, model_dir="/tmp/car_face")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
+        model_fn=vgg_model_fn, model_dir="/tmp/vgg_mnist")  # 新建自定义Estimator 传入自定义的模型函数   选定模型存放的目录
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
+
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=100)  # 每训练50步输出该次结果probabilities的softmax_tensor层
     # Train the model
-
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(  # 定义训练输入函数
+        x={"x": train_data},
+        y=train_labels,
+        batch_size=100,
+        num_epochs=None,
+        shuffle=True)
     vgg_car_classifier.train(  # 训练
-        input_fn=tfrecords_input_fn("car.tfrecords", 16, None),
+        input_fn=train_input_fn,
         steps=None,
         hooks=[logging_hook])
-    # eval_input_fn = tfrecords_input_fn("car.tfrecords", 10, 1)
-    # eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
-    # print(eval_results)
-
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(  # 评估师如函数
+        x={"x": eval_data},
+        y=eval_labels,
+        num_epochs=1,
+        shuffle=False)
+    eval_results = vgg_car_classifier.evaluate(input_fn=eval_input_fn)  # 评估当前模型
+    print(eval_results)
 
 if __name__ == "__main__":
     tf.app.run()
