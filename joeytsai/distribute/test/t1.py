@@ -1,4 +1,5 @@
 #https://www.jiqizhixin.com/articles/2017-12-10-5
+#https://blog.csdn.net/u012436149/article/details/53140869
 import tensorflow as tf
 from multiprocessing import Process
 from time import sleep
