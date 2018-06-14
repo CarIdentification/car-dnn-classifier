@@ -1,5 +1,6 @@
 #  coding=utf-8
 # https://blog.csdn.net/hjimce/article/details/61197190
+# https://www.tensorflow.org/versions/master/get_started/
 # 单机单卡
 # 对于单机单卡，可以把参数和计算都定义再gpu上，不过如果参数模型比较大，显存不足等情况，就得放在cpu上
 import tensorflow as tf
