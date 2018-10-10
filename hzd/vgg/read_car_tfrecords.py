@@ -1,12 +1,9 @@
-import os;
 import tensorflow as tf
 from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
 
 cwd = 'G:\Projects\PyCharmProjects\car-dnn-classifier\hzd\\vgg\\'
 
-## 读取TFRECORD文件
+# 读取TREFOR文件
 
 filename = cwd + 'car.tfrecords'
 

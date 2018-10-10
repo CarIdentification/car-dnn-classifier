@@ -11,5 +11,5 @@ def visit_dir(path):
 
 
 if __name__ == "__main__":
-    path = "train"
+    path = "test"
     visit_dir(path)

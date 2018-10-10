@@ -1,9 +1,8 @@
 import scipy.io as sio
-import numpy as np
 import os, shutil
 
-base_path = "train"
-load_fn = 'cars_train_annos.mat'
+base_path = "test"
+load_fn = 'mats/cars_test_annos_withlabels.mat'
 load_data = sio.loadmat(load_fn)
 annos = load_data['annotations']
 fclass = load_data['annotations']['class'][0]

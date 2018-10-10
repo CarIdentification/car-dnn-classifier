@@ -1,8 +1,9 @@
 import os
-from PIL import Image
-import numpy as np
 import random
+
 import keras
+import numpy as np
+from PIL import Image
 
 
 class ImageLoader:
@@ -31,6 +32,8 @@ class ImageLoader:
                 pic_arr = np.array(Image.open(file_path))
                 x_train.append(pic_arr)
                 y_label.append(i - 1)
+                # plt.imshow(pic_arr)
+                # plt.show()
         print(num, " pics was loaded")
         ImageLoader.data_num = num
         if shuffle:
@@ -48,7 +51,7 @@ class ImageLoader:
         while True:
             if idx_tail < ImageLoader.data_num:
                 yield ImageLoader.x_train[idx:idx_tail], keras.utils.to_categorical(ImageLoader.y_label[idx:idx_tail],
-                                                          196)
+                                                                                    196)
                 ImageLoader.index = idx_tail
             else:
                 idx_tail = idx_tail - ImageLoader.data_num
@@ -57,6 +60,5 @@ class ImageLoader:
                 ImageLoader.re_shuffle()
                 ImageLoader.index = 0
 
-# loader = ImageLoader(batch_size=1,base_path="G:\\Projects\\PyCharmProjects\\car-dnn-classifier\\hzd\\vgg\\stanford_car_dataset_solved\\train\\")
-# a = loader.generate()
-# print(a)
+# loader = ImageLoader(batch_size=1,base_path="G:\\Projects\\PyCharmProjects\\car-dnn-classifier\\hzd\\vgg
+# \\stanford_car_dataset_solved\\train\\") a = loader.generate() print(a)
