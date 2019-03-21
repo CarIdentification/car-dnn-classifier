@@ -20,16 +20,21 @@ while len(unsolved_list) > 0:
             tmp_path = unsolved_path + os.sep + inside_unsolved_list[0]
             if os.path.isfile(tmp_path):
                 type_name = os.path.dirname(tmp_path)
-                type_name = type_name[type_name.rfind(os.sep)+1:]
+                type_name = type_name[type_name.rfind(os.sep) + 1:]
                 if not type_name.find('（') == -1:
                     type_name = type_name[0:type_name.find('（')]
                 if not type_name.find('(') == -1:
                     type_name = type_name[0:type_name.find('(')]
                 if type_name not in brand_type_name:
-                    brand_type_name[type_name] = unsolved_path.replace(root_dir,target_dir)
+                    brand_type_name[type_name] = unsolved_path.replace(root_dir, target_dir)
                     os.makedirs(brand_type_name[type_name], exist_ok=True)
                     for file in inside_unsolved_list:
-                        shutil.copy(unsolved_path + os.sep + file,brand_type_name[type_name] + os.sep + file)
+                        file_path = unsolved_path + os.sep + file
+                        if os.path.isfile(file_path):
+                            shutil.copy(file_path, brand_type_name[type_name] + os.sep + file)
+                        else:
+                            for name in os.listdir(file_path):
+                                inside_unsolved_list.append(unsolved_path + os.sep + file + os.sep + name)
                 # shutil.copytree(unsolved_path, brand_type_name[type_name])
                 # shutil.rmtree(unsolved_path)
             else:
