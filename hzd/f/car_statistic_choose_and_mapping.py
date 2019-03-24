@@ -28,8 +28,8 @@ def output_data_and_mapping(items, num, output_path):
                 break
         cursor += 1
     out_mapper_file = open(output_path + os.sep + 'mapper', 'w')
-    for t_key, t_value in mapper:
-        out_mapper_file.write('%s:%s\n' % (t_key, t_value))
+    for t_key in mapper:
+        out_mapper_file.write('%s:%s\n' % (t_key, mapper[t_key]))
     out_mapper_file.close()
 
 
