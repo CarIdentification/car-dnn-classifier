@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
+import codecs
 
 file_set = []
 
@@ -31,9 +32,9 @@ def output_data_and_mapping(items, each_num, target_path):
         if cursor % 30 == 0:
             print('已输出:%d' % cursor)
     print('数据输出完成 写出映射关系')
-    out_mapper_file = open(target_path + os.sep + 'mapper', 'w')
+    out_mapper_file = codecs.open(target_path + os.sep + 'mapper', 'w', 'utf-8')
     for t_key in mapper:
-        out_mapper_file.write('%s:%s\n' % (t_key, mapper[t_key]))
+        out_mapper_file.write(u'%s:%s\n' % (t_key, mapper[t_key]))
     out_mapper_file.close()
 
 
