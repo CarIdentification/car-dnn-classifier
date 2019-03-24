@@ -10,13 +10,14 @@ unsolved_list = os.listdir(root_dir)
 brand_count = {}
 
 
-def output_data_and_mapping(items, num, output_path):
+def output_data_and_mapping(items, each_num, target_path):
+    print('训练集输出')
     mapper = {}
     cursor = 0
     for i_key, i_value in items:
         mapper[cursor] = i_key
         source_date_path = root_dir + os.sep + i_key
-        target_data_path = output_path + os.sep + str(cursor)
+        target_data_path = target_path + os.sep + str(cursor)
         copied_num = 0
         if not os.path.exists(target_data_path):
             os.makedirs(target_data_path)
@@ -24,10 +25,13 @@ def output_data_and_mapping(items, num, output_path):
             file_path = source_date_path + os.sep + file
             shutil.copy(file_path, target_data_path + os.sep + file)
             copied_num += 1
-            if copied_num == num:
+            if copied_num == each_num:
                 break
         cursor += 1
-    out_mapper_file = open(output_path + os.sep + 'mapper', 'w')
+        if cursor % 30 == 0:
+            print('已输出:%d' % cursor)
+    print('数据输出完成 写出映射关系')
+    out_mapper_file = open(target_path + os.sep + 'mapper', 'w')
     for t_key in mapper:
         out_mapper_file.write('%s:%s\n' % (t_key, mapper[t_key]))
     out_mapper_file.close()
@@ -69,6 +73,7 @@ while True:
     will_output_data = input('是否导出数据及生成映射关系? y/n')
     if will_output_data.lower() == 'y':
         output_path = input('输出到的路径')
+
         output_data_and_mapping(sorted_list[:found_num], num, output_path)
         print('done')
         break
