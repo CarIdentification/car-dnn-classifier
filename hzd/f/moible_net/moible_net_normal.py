@@ -7,7 +7,7 @@ import keras.preprocessing.image as preImage
 from keras.callbacks import TensorBoard
 
 
-def car_mobile_model(weight_save_path=None):
+def car_mobile_model(weight_save_path=None, train_pre=False):
     model = mobilenet.MobileNetV2(input_shape=[224, 224, 3],
                                   include_top=False
                                   )
@@ -29,7 +29,7 @@ def car_mobile_model(weight_save_path=None):
             by_name=True)
 
     for layer in model.layers[:-2]:
-        layer.trainable = True
+        layer.trainable = train_pre
 
     # sgd = optimizers.SGD(lr=0.01, decay=1e-4, momentum=0.9, nesterov=True)
 
@@ -71,27 +71,49 @@ if __name__ == '__main__':
     weight_save_path = "G:\\Projects\\PyCharmProjects\\car-dnn-classifier\\hzd\\f\\moible_net\\car.h5"
     epoch_save_path = "G:\\Projects\\PyCharmProjects\\car-dnn-classifier\\hzd\\mobile\\current_epoch.txt"
 
-    data_loader = preImage.ImageDataGenerator(samplewise_center=True, validation_split=0.1, rotation_range=30,
+    data_loader = preImage.ImageDataGenerator(validation_split=0.1,
+                                              rotation_range=30,
                                               horizontal_flip=True)
 
+    classes = []
+    for i in range(0, 739):
+        classes.append(str(i))
+
     data_generator = data_loader.flow_from_directory(data_base_directory, batch_size=32,
-                                                     target_size=(224, 224), subset='training')
+                                                     target_size=(224, 224), subset='training', classes=classes)
 
     test_data_generator = data_loader.flow_from_directory(data_base_directory, batch_size=32,
-                                                          target_size=(224, 224), subset='validation')
+                                                          target_size=(224, 224), subset='validation', classes=classes)
+
+    board_callback = TensorBoard(write_grads=True, write_images=True, log_dir="d:\\tensor_logs_mobile")
 
     if os.path.exists(weight_save_path):
         mobile_car_classifier = car_mobile_model(weight_save_path)
     else:
         mobile_car_classifier = car_mobile_model()
 
-    board_callback = TensorBoard(write_grads=True, write_images=True, log_dir="d:\\tensor_logs_mobile")
-
     a = mobile_car_classifier.fit_generator(data_generator,
                                             callbacks=[board_callback],
-                                            epochs=40, steps_per_epoch=36951 * 0.9 / 32,
+                                            steps_per_epoch=36951 * 0.9 / 32,
                                             verbose=1, validation_data=test_data_generator,
-                                            validation_steps=36951 * 0.1 / 32,initial_epoch=10)
-
+                                            validation_steps=36951 * 0.1 / 32, epochs=3)
     print('Save Weights')
     mobile_car_classifier.save(weight_save_path)
+
+    if os.path.exists(weight_save_path):
+        mobile_car_classifier = car_mobile_model(weight_save_path, True)
+    else:
+        mobile_car_classifier = car_mobile_model()
+
+    cur_finished = 3
+
+    while True:
+        a = mobile_car_classifier.fit_generator(data_generator,
+                                                callbacks=[board_callback],
+                                                steps_per_epoch=36951 * 0.9 / 32,
+                                                verbose=1, validation_data=test_data_generator,
+                                                validation_steps=36951 * 0.1 / 32, epochs=cur_finished + 1,
+                                                initial_epoch=cur_finished)
+        print('Save Weights')
+        mobile_car_classifier.save(weight_save_path)
+        cur_finished += 1
